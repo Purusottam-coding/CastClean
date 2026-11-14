@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Lock,
   MessageSquare,
+  LogOut,
 } from 'lucide-react';
 import { useHostSession } from '../hooks/useHostSession';
 import { ChatDrawer } from './ChatDrawer';
@@ -288,9 +289,10 @@ export const HostView: React.FC<HostViewProps> = ({
 
           <button
             onClick={onExit}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-xs transition"
+            className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
           >
-            Leave
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Leave</span>
           </button>
         </div>
       </div>

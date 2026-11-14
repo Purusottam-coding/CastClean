@@ -310,7 +310,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
         <span>Direct WebRTC P2P stream</span>
         <button
           onClick={onExit}
-          className="hover:text-red-400 transition"
+          className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition"
         >
           Leave Session
         </button>
