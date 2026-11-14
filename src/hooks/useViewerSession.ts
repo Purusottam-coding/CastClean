@@ -24,6 +24,7 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCurtainActive, setIsCurtainActive] = useState(false);
   const [isHostSharing, setIsHostSharing] = useState(false);
+  const [isViewerMicMuted, setIsViewerMicMuted] = useState(true);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [hostName, setHostName] = useState('Host');
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: string; text: string; time: string; isHost?: boolean }>>([]);
@@ -32,7 +33,72 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
   const peerRef = useRef<Peer | null>(null);
   const dataConnRef = useRef<DataConnection | null>(null);
   const activeMediaCallRef = useRef<MediaConnection | null>(null);
+  const viewerMicCallRef = useRef<MediaConnection | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const viewerPeerIdRef = useRef(generateViewerPeerId());
+
+  const hostPeerId = getHostPeerId(roomCode);
+
+  // Toggle Viewer Microphone
+  const toggleMic = useCallback(async () => {
+    if (isViewerMicMuted) {
+      try {
+        let stream = micStreamRef.current;
+        if (!stream || stream.getTracks().length === 0 || stream.getTracks()[0].readyState === 'ended') {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+          micStreamRef.current = stream;
+        }
+
+        const track = stream.getAudioTracks()[0];
+        if (track) {
+          track.enabled = true;
+        }
+
+        // Establish mic audio call to host if not already open
+        if (peerRef.current && (!viewerMicCallRef.current || !viewerMicCallRef.current.open)) {
+          const call = peerRef.current.call(hostPeerId, stream, {
+            metadata: { type: 'viewer-mic', viewerId: viewerPeerIdRef.current },
+          });
+          viewerMicCallRef.current = call;
+          call.on('close', () => {
+            viewerMicCallRef.current = null;
+          });
+          call.on('error', (err) => {
+            console.warn('Viewer mic call error:', err);
+          });
+        }
+
+        setIsViewerMicMuted(false);
+        if (dataConnRef.current?.open) {
+          dataConnRef.current.send({
+            type: 'AUDIO_STATE_CHANGE',
+            participantId: viewerPeerIdRef.current,
+            isMicMuted: false,
+          });
+        }
+      } catch (err) {
+        console.warn('Microphone access denied:', err);
+      }
+    } else {
+      if (micStreamRef.current) {
+        micStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = false));
+      }
+      setIsViewerMicMuted(true);
+      if (dataConnRef.current?.open) {
+        dataConnRef.current.send({
+          type: 'AUDIO_STATE_CHANGE',
+          participantId: viewerPeerIdRef.current,
+          isMicMuted: true,
+        });
+      }
+    }
+  }, [isViewerMicMuted, hostPeerId]);
 
   // Send a chat message
   const sendChatMessage = useCallback((text: string) => {
@@ -61,7 +127,6 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
   }, [displayName]);
 
   useEffect(() => {
-    const hostPeerId = getHostPeerId(roomCode);
     const myPeerId = viewerPeerIdRef.current;
     let peer: Peer;
 
@@ -112,6 +177,13 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
             setIsCurtainActive(payload.active);
           } else if (payload.type === 'STREAM_STATUS') {
             setIsHostSharing(payload.isSharing);
+          } else if (payload.type === 'FORCE_MUTE') {
+            if (payload.viewerId === myPeerId) {
+              if (micStreamRef.current) {
+                micStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = false));
+              }
+              setIsViewerMicMuted(true);
+            }
           } else if (payload.type === 'KICK') {
             if (payload.viewerId === myPeerId) {
               setViewerState('kicked');
@@ -147,11 +219,10 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
       });
     });
 
-    // Handle incoming WebRTC Media call
+    // Handle incoming WebRTC Media call (Screen stream from Host)
     peer.on('call', (call) => {
       activeMediaCallRef.current = call;
 
-      // Answer with dummy stream (one-way screen viewing)
       const emptyStream = new MediaStream();
       call.answer(emptyStream);
 
@@ -246,9 +317,15 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
       if (activeMediaCallRef.current) {
         activeMediaCallRef.current.close();
       }
+      if (viewerMicCallRef.current) {
+        viewerMicCallRef.current.close();
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
       peer.destroy();
     };
-  }, [roomCode, displayName]);
+  }, [roomCode, hostPeerId, displayName]);
 
   return {
     viewerState,
@@ -256,10 +333,12 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
     errorMessage,
     isCurtainActive,
     isHostSharing,
+    isViewerMicMuted,
     remoteStream,
     hostName,
     chatMessages,
     stats,
+    toggleMic,
     sendChatMessage,
   };
 }

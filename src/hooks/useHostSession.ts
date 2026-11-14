@@ -3,6 +3,7 @@ import Peer, { type DataConnection, type MediaConnection } from 'peerjs';
 import type { ViewerParticipant, DataChannelMessage } from '../types';
 import { getHostPeerId } from '../utils/room';
 import { PrivacyCurtainStream } from '../utils/curtainCanvas';
+import { HostAudioMixer } from '../utils/audioMixer';
 
 interface UseHostSessionOptions {
   roomCode: string;
@@ -15,15 +16,19 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
   const [peerError, setPeerError] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isCurtainActive, setIsCurtainActive] = useState(false);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [isScreenAudioMuted, setIsScreenAudioMuted] = useState(false);
+  const [isHostMicMuted, setIsHostMicMuted] = useState(true);
   const [participants, setParticipants] = useState<ViewerParticipant[]>([]);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: string; text: string; time: string; isHost?: boolean }>>([]);
 
   const peerRef = useRef<Peer | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const hostMicStreamRef = useRef<MediaStream | null>(null);
   const curtainStreamRef = useRef<PrivacyCurtainStream | null>(null);
+  const audioMixerRef = useRef<HostAudioMixer | null>(null);
   const connectionsRef = useRef<Map<string, DataConnection>>(new Map());
   const mediaCallsRef = useRef<Map<string, MediaConnection>>(new Map());
+  const viewerAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const requireApprovalRef = useRef(requireApproval);
   requireApprovalRef.current = requireApproval;
@@ -31,12 +36,20 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
   const isCurtainActiveRef = useRef(isCurtainActive);
   isCurtainActiveRef.current = isCurtainActive;
 
-  // Initialize Privacy Curtain slate
+  // Initialize Privacy Curtain and Audio Mixer
   useEffect(() => {
     curtainStreamRef.current = new PrivacyCurtainStream();
+    audioMixerRef.current = new HostAudioMixer();
+
     return () => {
       curtainStreamRef.current?.destroy();
       curtainStreamRef.current = null;
+      audioMixerRef.current?.destroy();
+      audioMixerRef.current = null;
+      if (hostMicStreamRef.current) {
+        hostMicStreamRef.current.getTracks().forEach((t) => t.stop());
+        hostMicStreamRef.current = null;
+      }
     };
   }, []);
 
@@ -57,16 +70,39 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     return screenStreamRef.current?.getVideoTracks()[0] || null;
   }, []);
 
-  // Build stream payload for WebRTC call
+  // Update audio track on all outgoing WebRTC calls
+  const updateAudioTrackOnAllCalls = useCallback(() => {
+    const mixedAudio = audioMixerRef.current?.getMixedTrack();
+    if (!mixedAudio) return;
+
+    mediaCallsRef.current.forEach((call) => {
+      try {
+        const pc = call.peerConnection;
+        if (pc) {
+          const senders = pc.getSenders();
+          const audioSender = senders.find(
+            (s) => (s.track && s.track.kind === 'audio') || (s as { kind?: string }).kind === 'audio'
+          );
+          if (audioSender) {
+            audioSender.replaceTrack(mixedAudio);
+          }
+        }
+      } catch (err) {
+        console.warn('Error updating audio sender:', err);
+      }
+    });
+  }, []);
+
+  // Build combined outgoing stream for WebRTC
   const buildOutgoingStream = useCallback((): MediaStream => {
     const stream = new MediaStream();
     const videoTrack = getActiveVideoTrack();
     if (videoTrack) {
       stream.addTrack(videoTrack);
     }
-    const audioTrack = screenStreamRef.current?.getAudioTracks()[0];
-    if (audioTrack && audioTrack.enabled) {
-      stream.addTrack(audioTrack);
+    const mixedAudioTrack = audioMixerRef.current?.getMixedTrack();
+    if (mixedAudioTrack) {
+      stream.addTrack(mixedAudioTrack);
     }
     return stream;
   }, [getActiveVideoTrack]);
@@ -151,6 +187,91 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     setParticipants((prev) => prev.filter((p) => p.id !== viewerId));
   }, []);
 
+  // Force mute a viewer
+  const forceMuteViewer = useCallback((viewerId: string) => {
+    const conn = connectionsRef.current.get(viewerId);
+    if (conn && conn.open) {
+      conn.send({
+        type: 'FORCE_MUTE',
+        viewerId,
+      });
+    }
+    setParticipants((prev) =>
+      prev.map((p) => (p.id === viewerId ? { ...p, isMicMuted: true } : p))
+    );
+  }, []);
+
+  // Toggle Host Microphone
+  const toggleHostMic = useCallback(async () => {
+    if (isHostMicMuted) {
+      try {
+        let stream = hostMicStreamRef.current;
+        if (!stream || stream.getTracks().length === 0 || stream.getTracks()[0].readyState === 'ended') {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+          hostMicStreamRef.current = stream;
+        }
+
+        const track = stream.getAudioTracks()[0];
+        if (track) {
+          track.enabled = true;
+          audioMixerRef.current?.addSource('host-mic', stream);
+          updateAudioTrackOnAllCalls();
+        }
+
+        setIsHostMicMuted(false);
+        broadcast({
+          type: 'AUDIO_STATE_CHANGE',
+          participantId: 'host',
+          isMicMuted: false,
+        });
+      } catch (err) {
+        console.warn('Microphone permission denied or not available:', err);
+      }
+    } else {
+      if (hostMicStreamRef.current) {
+        hostMicStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = false));
+        audioMixerRef.current?.removeSource('host-mic');
+        updateAudioTrackOnAllCalls();
+      }
+      setIsHostMicMuted(true);
+      broadcast({
+        type: 'AUDIO_STATE_CHANGE',
+        participantId: 'host',
+        isMicMuted: true,
+      });
+    }
+  }, [isHostMicMuted, broadcast, updateAudioTrackOnAllCalls]);
+
+  // Toggle Screen System Audio
+  const toggleScreenAudio = useCallback(() => {
+    if (!screenStreamRef.current) return;
+    const audioTrack = screenStreamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      const nextState = !audioTrack.enabled;
+      audioTrack.enabled = nextState;
+      setIsScreenAudioMuted(!nextState);
+
+      if (nextState) {
+        audioMixerRef.current?.addSource('screen-audio', new MediaStream([audioTrack]));
+      } else {
+        audioMixerRef.current?.removeSource('screen-audio');
+      }
+      updateAudioTrackOnAllCalls();
+
+      broadcast({
+        type: 'STREAM_STATUS',
+        isSharing: true,
+        isAudioMuted: !nextState,
+      });
+    }
+  }, [broadcast, updateAudioTrackOnAllCalls]);
+
   // Toggle Privacy Curtain with atomic track replacement
   const togglePrivacyCurtain = useCallback(() => {
     const nextState = !isCurtainActiveRef.current;
@@ -164,11 +285,9 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     if (!targetTrack) return;
 
     if (realTrack) {
-      // Hardware-level pixel mute when curtain is active
       realTrack.enabled = !nextState;
     }
 
-    // Replace video track on all active peer senders
     mediaCallsRef.current.forEach((call) => {
       try {
         const pc = call.peerConnection;
@@ -192,28 +311,15 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     });
   }, [broadcast]);
 
-  // Screen audio toggle
-  const toggleAudio = useCallback(() => {
-    if (!screenStreamRef.current) return;
-    const audioTrack = screenStreamRef.current.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      setIsAudioMuted(!audioTrack.enabled);
-
-      broadcast({
-        type: 'STREAM_STATUS',
-        isSharing: true,
-        isAudioMuted: !audioTrack.enabled,
-      });
-    }
-  }, [broadcast]);
-
   // Stop screen sharing
   const stopSharing = useCallback(() => {
     if (screenStreamRef.current) {
       screenStreamRef.current.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
     }
+    audioMixerRef.current?.removeSource('screen-audio');
+    updateAudioTrackOnAllCalls();
+
     setIsSharing(false);
     setIsCurtainActive(false);
 
@@ -225,7 +331,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       isSharing: false,
       isAudioMuted: true,
     });
-  }, [broadcast]);
+  }, [broadcast, updateAudioTrackOnAllCalls]);
 
   // Start screen sharing
   const startSharing = useCallback(async () => {
@@ -253,9 +359,16 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       setIsCurtainActive(false);
 
       const audioTrack = stream.getAudioTracks()[0];
-      setIsAudioMuted(!audioTrack || !audioTrack.enabled);
+      if (audioTrack && audioTrack.enabled) {
+        setIsScreenAudioMuted(false);
+        audioMixerRef.current?.addSource('screen-audio', new MediaStream([audioTrack]));
+      } else {
+        setIsScreenAudioMuted(true);
+      }
 
-      // Re-call or replace tracks for all approved participants
+      updateAudioTrackOnAllCalls();
+
+      // Call or reconnect all approved participants
       participants.forEach((p) => {
         if (p.status === 'approved' || p.status === 'connected') {
           callViewer(p.id);
@@ -273,7 +386,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       console.warn('Screen share request cancelled or failed:', err);
       return false;
     }
-  }, [participants, callViewer, stopSharing, broadcast]);
+  }, [participants, callViewer, stopSharing, broadcast, updateAudioTrackOnAllCalls]);
 
   // Send a chat message
   const sendChatMessage = useCallback((text: string) => {
@@ -340,6 +453,39 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       }
     });
 
+    // Handle incoming calls (Viewers sending microphone audio stream)
+    peer.on('call', (incomingCall) => {
+      // Answer incoming call to receive viewer mic audio
+      incomingCall.answer();
+
+      incomingCall.on('stream', (viewerMicStream) => {
+        // Play viewer's voice on host speakers
+        const audio = new Audio();
+        audio.srcObject = viewerMicStream;
+        audio.play().catch(() => {});
+        viewerAudioElementsRef.current.set(incomingCall.peer, audio);
+
+        // Mix viewer mic so other viewers hear them
+        audioMixerRef.current?.addSource(incomingCall.peer, viewerMicStream);
+        updateAudioTrackOnAllCalls();
+      });
+
+      incomingCall.on('close', () => {
+        const audio = viewerAudioElementsRef.current.get(incomingCall.peer);
+        if (audio) {
+          audio.srcObject = null;
+          viewerAudioElementsRef.current.delete(incomingCall.peer);
+        }
+        audioMixerRef.current?.removeSource(incomingCall.peer);
+        updateAudioTrackOnAllCalls();
+      });
+
+      incomingCall.on('error', (err) => {
+        console.warn(`Incoming call error from ${incomingCall.peer}:`, err);
+      });
+    });
+
+    // Handle incoming DataChannels
     peer.on('connection', (conn) => {
       connectionsRef.current.set(conn.peer, conn);
 
@@ -353,6 +499,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
               displayName: payload.displayName || 'Anonymous Viewer',
               status: requireApprovalRef.current ? 'knocking' : 'approved',
               joinedAt: payload.timestamp || Date.now(),
+              isMicMuted: true,
             };
 
             setParticipants((prev) => {
@@ -370,6 +517,13 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
                 callViewer(payload.viewerId);
               }
             }
+          } else if (payload.type === 'AUDIO_STATE_CHANGE') {
+            setParticipants((prev) =>
+              prev.map((p) =>
+                p.id === payload.participantId ? { ...p, isMicMuted: payload.isMicMuted } : p
+              )
+            );
+            broadcast(payload);
           } else if (payload.type === 'CHAT_MESSAGE') {
             setChatMessages((prev) => [
               ...prev,
@@ -390,6 +544,8 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
               call.close();
               mediaCallsRef.current.delete(payload.viewerId);
             }
+            audioMixerRef.current?.removeSource(payload.viewerId);
+            updateAudioTrackOnAllCalls();
           }
         } catch (e) {
           console.error('Error handling data channel message:', e);
@@ -404,6 +560,8 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
           call.close();
           mediaCallsRef.current.delete(conn.peer);
         }
+        audioMixerRef.current?.removeSource(conn.peer);
+        updateAudioTrackOnAllCalls();
       });
     });
 
@@ -413,26 +571,33 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       connectionsRef.current.clear();
       mediaCallsRef.current.forEach((call) => call.close());
       mediaCallsRef.current.clear();
+      viewerAudioElementsRef.current.forEach((audio) => {
+        audio.srcObject = null;
+      });
+      viewerAudioElementsRef.current.clear();
       peer.destroy();
     };
-  }, [roomCode, hostName, broadcast, callViewer, stopSharing]);
+  }, [roomCode, hostName, broadcast, callViewer, stopSharing, updateAudioTrackOnAllCalls]);
 
   return {
     peerReady,
     peerError,
     isSharing,
     isCurtainActive,
-    isAudioMuted,
+    isScreenAudioMuted,
+    isHostMicMuted,
     participants,
     chatMessages,
     screenStream: screenStreamRef.current,
     startSharing,
     stopSharing,
     togglePrivacyCurtain,
-    toggleAudio,
+    toggleScreenAudio,
+    toggleHostMic,
     approveViewer,
     declineViewer,
     kickViewer,
+    forceMuteViewer,
     sendChatMessage,
   };
 }

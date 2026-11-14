@@ -7,6 +7,7 @@ export interface ViewerParticipant {
   displayName: string;
   status: ParticipantStatus;
   joinedAt: number;
+  isMicMuted?: boolean;
 }
 
 export type DataChannelMessage =
@@ -33,6 +34,15 @@ export type DataChannelMessage =
       type: 'STREAM_STATUS';
       isSharing: boolean;
       isAudioMuted: boolean;
+    }
+  | {
+      type: 'AUDIO_STATE_CHANGE';
+      participantId: string;
+      isMicMuted: boolean;
+    }
+  | {
+      type: 'FORCE_MUTE';
+      viewerId: string;
     }
   | {
       type: 'KICK';
