@@ -87,13 +87,6 @@ export function App() {
         )}
       </main>
 
-      <footer className="w-full border-t border-slate-900 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>CastClean — Direct WebRTC Peer-to-Peer Screen Sharing</span>
-          <span className="font-mono text-slate-600">DTLS / SRTP</span>
-        </div>
-      </footer>
-
       <ArchitectureModal
         isOpen={isArchModalOpen}
         onClose={() => setIsArchModalOpen(false)}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cast, Tv, Shield, ArrowRight, RefreshCw } from 'lucide-react';
+import { Cast, Tv, ArrowRight, RefreshCw } from 'lucide-react';
 import { generateRoomCode, sanitizeRoomCode } from '../utils/room';
 
 interface LandingViewProps {
@@ -110,9 +110,6 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-indigo-300 uppercase focus:outline-none focus:border-indigo-500"
                 required
               />
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                PeerJS ID: <code className="font-mono text-slate-400">castclean-{hostRoomCode}</code>
-              </span>
             </div>
 
             <div>
@@ -128,24 +125,32 @@ export const LandingView: React.FC<LandingViewProps> = ({
               />
             </div>
 
-            <div className="p-3 bg-slate-950/70 rounded-lg border border-slate-800">
-              <label className="flex items-start space-x-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={requireApproval}
-                  onChange={(e) => setRequireApproval(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-0"
-                />
-                <div>
-                  <div className="flex items-center space-x-1 text-xs font-medium text-slate-200">
-                    <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Require approval before viewing</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Knocking viewers must be explicitly approved before any media packets flow.
-                  </p>
+            {/* Redesigned Require Approval Toggle */}
+            <div
+              onClick={() => setRequireApproval(!requireApproval)}
+              className="flex items-center justify-between p-3.5 bg-slate-950/80 rounded-lg border border-slate-800 hover:border-slate-700/80 cursor-pointer select-none transition-colors"
+            >
+              <div className="pr-3">
+                <div className="text-xs font-semibold text-slate-200">
+                  Require approval before viewing
                 </div>
-              </label>
+                <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                  Viewers wait in a lobby until you approve their request.
+                </div>
+              </div>
+
+              {/* iOS-style custom toggle switch */}
+              <div
+                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out shrink-0 ${
+                  requireApproval ? 'bg-indigo-600' : 'bg-slate-800'
+                }`}
+              >
+                <div
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                    requireApproval ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </div>
             </div>
 
             <button
@@ -197,21 +202,6 @@ export const LandingView: React.FC<LandingViewProps> = ({
             </button>
           </form>
         )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 w-full mt-8 text-slate-400 text-center">
-        <div className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-lg">
-          <span className="text-[11px] font-semibold text-slate-200 block">Direct P2P</span>
-          <span className="text-[10px] text-slate-500">Zero intermediate media servers</span>
-        </div>
-        <div className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-lg">
-          <span className="text-[11px] font-semibold text-slate-200 block">Privacy Curtain</span>
-          <span className="text-[10px] text-slate-500">Instant track replacement</span>
-        </div>
-        <div className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-lg">
-          <span className="text-[11px] font-semibold text-slate-200 block">Gatekeeper</span>
-          <span className="text-[10px] text-slate-500">Explicit host approval</span>
-        </div>
       </div>
     </div>
   );
