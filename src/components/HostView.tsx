@@ -190,26 +190,20 @@ export const HostView: React.FC<HostViewProps> = ({
           {/* Control Console */}
           <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5 shadow-sm">
             <div className="flex items-center space-x-2">
-              {/* Host Microphone Toggle */}
+              {/* Host Microphone Toggle (Symbol Only) */}
               <button
                 onClick={toggleHostMic}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition ${
+                className={`p-2 rounded-lg border transition flex items-center justify-center ${
                   isHostMicMuted
-                    ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
-                    : 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border-emerald-800/50'
+                    ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border-zinc-700'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-600 shadow-sm'
                 }`}
-                title={isHostMicMuted ? 'Unmute Host Microphone' : 'Mute Host Microphone'}
+                title={isHostMicMuted ? 'Unmute Microphone' : 'Mute Microphone'}
               >
                 {isHostMicMuted ? (
-                  <>
-                    <MicOff className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Mic Muted</span>
-                  </>
+                  <MicOff className="w-4 h-4" />
                 ) : (
-                  <>
-                    <Mic className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Mic On</span>
-                  </>
+                  <Mic className="w-4 h-4" />
                 )}
               </button>
 
