@@ -6,7 +6,7 @@ import {
   Mic,
   MicOff,
   Share2,
-  Square,
+  ScreenShareOff,
   Check,
   X,
   AlertTriangle,
@@ -221,7 +221,7 @@ export const HostView: React.FC<HostViewProps> = ({
                 onClick={toggleAudio}
                 className={`p-2 rounded-lg text-xs border transition ${
                   isAudioMuted
-                    ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                    ? 'bg-red-950/40 text-red-300 border-red-800/40'
                     : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
                 }`}
                 title={isAudioMuted ? 'Unmute Audio' : 'Mute Audio'}
@@ -280,16 +280,17 @@ export const HostView: React.FC<HostViewProps> = ({
           {isSharing && (
             <button
               onClick={stopSharing}
-              className="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-xs font-medium flex items-center space-x-1.5 transition"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center space-x-1.5 transition"
+              title="Stop Screen Sharing"
             >
-              <Square className="w-3.5 h-3.5" />
+              <ScreenShareOff className="w-3.5 h-3.5 text-zinc-400" />
               <span>Stop Share</span>
             </button>
           )}
 
           <button
             onClick={onExit}
-            className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
+            className="px-3.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-300 hover:text-red-200 border border-red-800/50 text-xs font-medium flex items-center space-x-1.5 transition"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Leave</span>
