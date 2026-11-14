@@ -9,6 +9,7 @@ import {
   Shield,
   AlertCircle,
   Activity,
+  MessageSquare,
 } from 'lucide-react';
 import { useViewerSession } from '../hooks/useViewerSession';
 import { ChatDrawer } from './ChatDrawer';
@@ -276,6 +277,17 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
               onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
               className="w-14 h-1 accent-indigo-500 bg-slate-800 rounded cursor-pointer"
             />
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className={`p-1 rounded transition ${
+                isChatOpen
+                  ? 'bg-indigo-600/30 text-indigo-300'
+                  : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+              }`}
+              title="Chat"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+            </button>
             <button
               onClick={togglePiP}
               className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition"

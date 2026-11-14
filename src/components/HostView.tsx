@@ -11,6 +11,7 @@ import {
   X,
   AlertTriangle,
   Lock,
+  MessageSquare,
 } from 'lucide-react';
 import { useHostSession } from '../hooks/useHostSession';
 import { ChatDrawer } from './ChatDrawer';
@@ -254,6 +255,23 @@ export const HostView: React.FC<HostViewProps> = ({
           >
             <Users className="w-3.5 h-3.5" />
             <span>Viewers ({approvedParticipants.length})</span>
+          </button>
+
+          <button
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition ${
+              isChatOpen
+                ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Chat</span>
+            {chatMessages.length > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.2 bg-indigo-600 text-white rounded-full">
+                {chatMessages.length}
+              </span>
+            )}
           </button>
         </div>
 
