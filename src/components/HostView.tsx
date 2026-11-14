@@ -201,45 +201,34 @@ export const HostView: React.FC<HostViewProps> = ({
 
       {/* Control Console */}
       <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center space-x-2">
-          {isSharing ? (
-            <>
-              <button
-                onClick={togglePrivacyCurtain}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
-                  isCurtainActive
-                    ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
-                }`}
-                title="Press P"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>{isCurtainActive ? 'Resume Stream' : 'Privacy Curtain (P)'}</span>
-              </button>
-
-              <button
-                onClick={toggleAudio}
-                className={`p-2 rounded-lg text-xs border transition ${
-                  isAudioMuted
-                    ? 'bg-red-950/40 text-red-300 border-red-800/40'
-                    : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
-                }`}
-                title={isAudioMuted ? 'Unmute Audio' : 'Mute Audio'}
-              >
-                {isAudioMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-              </button>
-            </>
-          ) : (
+        {isSharing ? (
+          <div className="flex items-center space-x-2">
             <button
-              onClick={startSharing}
-              disabled={!peerReady}
-              className="px-3.5 py-1.5 bg-zinc-100 hover:bg-white disabled:opacity-40 text-zinc-950 text-xs font-semibold rounded-lg flex items-center space-x-1.5 transition shadow-sm"
+              onClick={togglePrivacyCurtain}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
+                isCurtainActive
+                  ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
+              }`}
+              title="Press P"
             >
-              <Cast className="w-3.5 h-3.5" />
-              <span>Share Screen</span>
+              <Shield className="w-3.5 h-3.5" />
+              <span>{isCurtainActive ? 'Resume Stream' : 'Privacy Curtain (P)'}</span>
             </button>
-          )}
-        </div>
+
+            <button
+              onClick={toggleAudio}
+              className={`p-2 rounded-lg text-xs border transition ${
+                isAudioMuted
+                  ? 'bg-red-950/40 text-red-300 border-red-800/40'
+                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
+              }`}
+              title={isAudioMuted ? 'Unmute Audio' : 'Mute Audio'}
+            >
+              {isAudioMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex items-center space-x-2">
           <button
