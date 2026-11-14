@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Shield,
   Cast,
   Users,
   Mic,
@@ -12,9 +11,11 @@ import {
   Check,
   X,
   AlertTriangle,
-  Lock,
   MessageSquare,
   LogOut,
+  Pause,
+  Play,
+  EyeOff,
 } from 'lucide-react';
 import { useHostSession } from '../hooks/useHostSession';
 import { ChatDrawer } from './ChatDrawer';
@@ -66,7 +67,7 @@ export const HostView: React.FC<HostViewProps> = ({
     }
   }, [screenStream]);
 
-  // Shortcut: Press P to toggle Privacy Curtain
+  // Shortcut: Press P to toggle Pause / Privacy Curtain
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
@@ -105,10 +106,10 @@ export const HostView: React.FC<HostViewProps> = ({
 
       {/* Knocking Viewers Gatekeeper Tray */}
       {knockingParticipants.length > 0 && (
-        <div className="bg-zinc-900 border border-amber-500/40 rounded-xl p-3 shadow-lg">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-3 shadow-lg">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span className="w-2 h-2 rounded-full bg-zinc-400"></span>
               <span className="text-xs font-semibold text-white">
                 {knockingParticipants.length} viewer{knockingParticipants.length > 1 ? 's' : ''} requesting access:
               </span>
@@ -123,14 +124,14 @@ export const HostView: React.FC<HostViewProps> = ({
                   <span className="text-zinc-300 font-medium">{p.displayName}</span>
                   <button
                     onClick={() => approveViewer(p.id)}
-                    className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white transition"
+                    className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
                     title="Allow"
                   >
                     <Check className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => declineViewer(p.id)}
-                    className="p-1 rounded bg-red-600 hover:bg-red-500 text-white transition"
+                    className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-red-400 border border-zinc-700 transition"
                     title="Decline"
                   >
                     <X className="w-3 h-3" />
@@ -154,19 +155,17 @@ export const HostView: React.FC<HostViewProps> = ({
               className="w-full h-full object-contain"
             />
 
-            {/* Privacy Curtain Overlay on Preview */}
+            {/* Natural Screen Paused Overlay on Preview */}
             {isCurtainActive && (
-              <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center p-4 text-center z-10">
-                <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-amber-400 mb-2">
-                  <Lock className="w-6 h-6" />
-                </div>
-                <h3 className="text-sm font-bold text-white">Privacy Curtain Active</h3>
-                <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-                  Screen track replaced with standby slate. Viewers cannot see your display.
+              <div className="absolute inset-0 bg-zinc-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-10">
+                <EyeOff className="w-8 h-8 text-zinc-400 mb-2 stroke-[1.5]" />
+                <h3 className="text-sm font-semibold text-zinc-100">Screen Sharing Paused</h3>
+                <p className="text-xs text-zinc-400 mt-0.5 max-w-xs">
+                  Your screen is hidden from viewers.
                 </p>
                 <button
                   onClick={togglePrivacyCurtain}
-                  className="mt-3 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-semibold rounded-lg transition"
+                  className="mt-3 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium rounded-lg transition"
                 >
                   Resume Screen (P)
                 </button>
@@ -179,8 +178,9 @@ export const HostView: React.FC<HostViewProps> = ({
                 Live Preview
               </span>
               {isCurtainActive && (
-                <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-[11px] font-semibold text-amber-300">
-                  Curtain On
+                <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-700 text-[11px] font-medium text-zinc-300 flex items-center space-x-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+                  <span>Paused</span>
                 </span>
               )}
             </div>
@@ -230,20 +230,29 @@ export const HostView: React.FC<HostViewProps> = ({
             )}
           </button>
 
-          {/* Screen Streaming Controls (Privacy Curtain & Screen Audio) */}
+          {/* Screen Streaming Controls (Pause / Resume & Screen Audio) */}
           {isSharing && (
             <>
               <button
                 onClick={togglePrivacyCurtain}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition flex items-center space-x-1.5 ${
                   isCurtainActive
-                    ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
+                    ? 'bg-zinc-800 text-white border-zinc-600'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700'
                 }`}
-                title="Press P"
+                title="Shortcut: P"
               >
-                <Shield className="w-3.5 h-3.5" />
-                <span>{isCurtainActive ? 'Resume Stream' : 'Privacy Curtain (P)'}</span>
+                {isCurtainActive ? (
+                  <>
+                    <Play className="w-3.5 h-3.5 text-zinc-200" />
+                    <span>Resume Screen</span>
+                  </>
+                ) : (
+                  <>
+                    <Pause className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Pause Screen (P)</span>
+                  </>
+                )}
               </button>
 
               <button
@@ -349,7 +358,6 @@ export const HostView: React.FC<HostViewProps> = ({
                 >
                   <div className="flex items-center space-x-2">
                     <span className="font-medium text-zinc-200">{p.displayName}</span>
-                    {/* Viewer mic status badge */}
                     {p.isMicMuted ? (
                       <span className="px-1.5 py-0.5 rounded text-[10px] bg-zinc-900 text-zinc-500 border border-zinc-800 flex items-center space-x-1">
                         <MicOff className="w-3 h-3" />
