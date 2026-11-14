@@ -12,6 +12,7 @@ import {
   Activity,
   MessageSquare,
   EyeOff,
+  LogOut,
 } from 'lucide-react';
 import { useViewerSession } from '../hooks/useViewerSession';
 import { ChatDrawer } from './ChatDrawer';
@@ -51,6 +52,14 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -205,9 +214,129 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
     );
   }
 
+  // Shared Control Bar UI (rendered below video in normal view, and as an overlay in fullscreen)
+  const renderControls = (isOverlay = false) => (
+    <div
+      className={`flex flex-wrap items-center justify-between gap-3 ${
+        isOverlay
+          ? 'bg-zinc-900/95 backdrop-blur-md border border-zinc-700/80 px-4 py-2.5 rounded-2xl shadow-2xl max-w-2xl mx-auto'
+          : 'w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 shadow-sm'
+      }`}
+    >
+      {/* Left: Viewer Mic & Volume Controls */}
+      <div className="flex items-center space-x-2.5">
+        {/* Viewer Microphone Toggle Button */}
+        <button
+          onClick={toggleMic}
+          className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition ${
+            isViewerMicMuted
+              ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+              : 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border-emerald-800/50'
+          }`}
+          title={isViewerMicMuted ? 'Unmute Your Microphone' : 'Mute Your Microphone'}
+        >
+          {isViewerMicMuted ? (
+            <>
+              <MicOff className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Mic Muted</span>
+            </>
+          ) : (
+            <>
+              <Mic className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Mic Active</span>
+            </>
+          )}
+        </button>
+
+        {/* Clear, Accessible Volume Slider */}
+        <div className="flex items-center space-x-2 bg-zinc-950 px-2.5 py-1.5 rounded-lg border border-zinc-800">
+          <button
+            onClick={() => handleVolumeChange(isMuted ? (volume > 0 ? volume : 1) : 0)}
+            className="text-zinc-400 hover:text-white transition p-0.5 rounded hover:bg-zinc-800"
+            title={isMuted || volume === 0 ? 'Unmute Volume' : 'Mute Volume'}
+          >
+            {isMuted || volume === 0 ? (
+              <VolumeX className="w-3.5 h-3.5 text-red-400" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5 text-zinc-300" />
+            )}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={isMuted ? 0 : volume}
+            onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+            className="w-20 sm:w-28 h-1.5 accent-zinc-200 bg-zinc-800 rounded cursor-pointer"
+          />
+          <span className="text-[11px] font-mono text-zinc-400 w-8 text-right select-none">
+            {isMuted ? '0%' : `${Math.round(volume * 100)}%`}
+          </span>
+        </div>
+      </div>
+
+      {/* Center: Chat, PiP, Fullscreen, WebRTC Stats */}
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition ${
+            isChatOpen
+              ? 'bg-zinc-700 text-white border-zinc-500'
+              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          <span>Chat</span>
+          {chatMessages.length > 0 && (
+            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-zinc-700 text-white rounded-full">
+              {chatMessages.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={togglePiP}
+          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center space-x-1 transition"
+          title="Picture in Picture"
+        >
+          <PictureInPicture2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">PiP</span>
+        </button>
+
+        <button
+          onClick={toggleFullscreen}
+          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center space-x-1 transition"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+          <span className="hidden sm:inline">{isFullscreen ? 'Exit' : 'Full'}</span>
+        </button>
+
+        <button
+          onClick={() => setIsStatsOpen(true)}
+          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs font-mono flex items-center space-x-1 transition"
+          title="WebRTC Telemetry"
+        >
+          <Activity className="w-3 h-3 text-emerald-400" />
+          <span>{stats?.rttMs ? `${stats.rttMs}ms` : 'P2P'}</span>
+        </button>
+      </div>
+
+      {/* Right: Leave Button */}
+      <button
+        onClick={onExit}
+        className="px-3.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-300 hover:text-red-200 border border-red-800/50 text-xs font-medium flex items-center space-x-1.5 transition"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+        <span>Leave</span>
+      </button>
+    </div>
+  );
+
   // State 5: Active Stream Player
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col space-y-4">
+    <div className="max-w-5xl mx-auto px-4 py-5 flex flex-col space-y-3">
       {audioAutoplayBlocked && (
         <div className="p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg flex items-center justify-between text-xs text-zinc-300">
           <div className="flex items-center space-x-2">
@@ -226,7 +355,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
       {/* Video Viewport */}
       <div
         ref={containerRef}
-        className="relative w-full aspect-video bg-zinc-950 rounded-xl border border-zinc-800 overflow-hidden flex items-center justify-center group"
+        className="relative w-full aspect-video bg-zinc-950 rounded-xl border border-zinc-800 overflow-hidden flex items-center justify-center group shadow-lg"
       >
         <video
           ref={videoRef}
@@ -236,110 +365,28 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
         />
 
         {/* Top Overlay Bar */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
-          <div className="flex items-center space-x-2">
-            <span className="px-2 py-0.5 rounded bg-zinc-900/80 border border-zinc-800 text-[11px] font-medium text-zinc-200">
-              {hostName}’s Screen
+        <div className="absolute top-3 left-3 flex items-center space-x-2 z-10 pointer-events-none">
+          <span className="px-2 py-0.5 rounded bg-zinc-900/85 backdrop-blur-sm border border-zinc-800 text-[11px] font-medium text-zinc-200 shadow-sm">
+            {hostName}’s Screen
+          </span>
+          {isCurtainActive && (
+            <span className="px-2 py-0.5 rounded bg-zinc-900/90 backdrop-blur-sm border border-zinc-700 text-[11px] font-medium text-zinc-300 flex items-center space-x-1.5 shadow-sm">
+              <EyeOff className="w-3 h-3 text-zinc-400" />
+              <span>Screen Paused by Host</span>
             </span>
-            {isCurtainActive && (
-              <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-700 text-[11px] font-medium text-zinc-300 flex items-center space-x-1.5">
-                <EyeOff className="w-3 h-3 text-zinc-400" />
-                <span>Screen Paused by Host</span>
-              </span>
-            )}
-            {!isViewerMicMuted && (
-              <span className="px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/50 text-[11px] font-medium text-emerald-300 flex items-center space-x-1">
-                <Mic className="w-3 h-3 text-emerald-400" />
-                <span>Mic Active</span>
-              </span>
-            )}
-          </div>
-
-          <button
-            onClick={() => setIsStatsOpen(true)}
-            className="pointer-events-auto px-2 py-0.5 rounded bg-zinc-900/80 border border-zinc-800 text-[11px] font-mono text-zinc-300 hover:text-white transition flex items-center space-x-1"
-          >
-            <Activity className="w-3 h-3 text-emerald-400" />
-            <span>{stats?.rttMs ? `${stats.rttMs}ms` : 'Direct UDP'}</span>
-          </button>
+          )}
         </div>
 
-        {/* Bottom Media Controls Bar */}
-        <div className="absolute bottom-3 right-3 flex items-center space-x-2 z-10 pointer-events-auto opacity-80 group-hover:opacity-100 transition-opacity">
-          <div className="flex items-center space-x-1 bg-zinc-900/90 border border-zinc-800 rounded-lg p-1">
-            <button
-              onClick={() => handleVolumeChange(isMuted ? 1 : 0)}
-              className="p-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition"
-              title={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted || volume === 0 ? (
-                <VolumeX className="w-3.5 h-3.5 text-red-400" />
-              ) : (
-                <Volume2 className="w-3.5 h-3.5 text-zinc-200" />
-              )}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={isMuted ? 0 : volume}
-              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-              className="w-14 h-1 accent-zinc-300 bg-zinc-800 rounded cursor-pointer"
-            />
-            <button
-              onClick={toggleMic}
-              className={`p-1 rounded transition ${
-                isViewerMicMuted
-                  ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white'
-                  : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/60'
-              }`}
-              title={isViewerMicMuted ? 'Unmute Microphone' : 'Mute Microphone'}
-            >
-              {isViewerMicMuted ? (
-                <MicOff className="w-3.5 h-3.5" />
-              ) : (
-                <Mic className="w-3.5 h-3.5 text-emerald-400" />
-              )}
-            </button>
-            <button
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className={`p-1 rounded transition ${
-                isChatOpen
-                  ? 'bg-zinc-700 text-white'
-                  : 'hover:bg-zinc-800 text-zinc-300 hover:text-white'
-              }`}
-              title="Chat"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={togglePiP}
-              className="p-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition"
-              title="Picture in Picture"
-            >
-              <PictureInPicture2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={toggleFullscreen}
-              className="p-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition"
-              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-            >
-              {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-            </button>
+        {/* Fullscreen Floating Controls (Only shown inside video viewport when in Fullscreen) */}
+        {isFullscreen && (
+          <div className="absolute bottom-5 left-4 right-4 z-20 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {renderControls(true)}
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-zinc-400">
-        <span>Direct WebRTC P2P stream</span>
-        <button
-          onClick={onExit}
-          className="px-3 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-300 hover:text-red-200 border border-red-800/50 text-xs font-medium transition"
-        >
-          Leave Session
-        </button>
-      </div>
+      {/* Normal Windowed Mode Control Console */}
+      {!isFullscreen && renderControls(false)}
 
       <StatsModal
         stats={stats}
