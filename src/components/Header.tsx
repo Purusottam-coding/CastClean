@@ -1,11 +1,10 @@
 import React from 'react';
-import { Cast, Shield, Copy, Check, Info } from 'lucide-react';
+import { Cast, Shield, Copy, Check } from 'lucide-react';
 import { getRoomShareUrl } from '../utils/room';
 
 interface HeaderProps {
   roomCode?: string;
   role?: 'host' | 'viewer';
-  onOpenArchitecture?: () => void;
   onOpenStats?: () => void;
   hasStats?: boolean;
 }
@@ -13,7 +12,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   roomCode,
   role,
-  onOpenArchitecture,
   onOpenStats,
   hasStats,
 }) => {
@@ -31,17 +29,8 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-100 border border-zinc-700 flex items-center justify-center">
-            <Cast className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-bold text-sm tracking-tight text-white">CastClean</span>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
-                P2P
-              </span>
-            </div>
-          </div>
+          <Cast className="w-6 h-6 text-zinc-100" />
+          <span className="font-bold text-base tracking-tight text-white">CastClean</span>
         </div>
 
         {/* Center Room Code Pill */}
@@ -75,16 +64,6 @@ export const Header: React.FC<HeaderProps> = ({
               {role === 'host' && <Shield className="w-3 h-3 text-zinc-400" />}
               <span className="capitalize">{role}</span>
             </span>
-          )}
-
-          {onOpenArchitecture && (
-            <button
-              onClick={onOpenArchitecture}
-              title="Architecture details"
-              className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
-            >
-              <Info className="w-4 h-4" />
-            </button>
           )}
         </div>
       </div>

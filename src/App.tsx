@@ -3,7 +3,6 @@ import { Header } from './components/Header';
 import { LandingView } from './components/LandingView';
 import { HostView } from './components/HostView';
 import { ViewerView } from './components/ViewerView';
-import { ArchitectureModal } from './components/ArchitectureModal';
 import { sanitizeRoomCode } from './utils/room';
 
 export function App() {
@@ -11,7 +10,6 @@ export function App() {
   const [roomCode, setRoomCode] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>('');
   const [requireApproval, setRequireApproval] = useState<boolean>(true);
-  const [isArchModalOpen, setIsArchModalOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -57,7 +55,6 @@ export function App() {
       <Header
         roomCode={role !== 'landing' ? roomCode : undefined}
         role={role !== 'landing' ? role : undefined}
-        onOpenArchitecture={() => setIsArchModalOpen(true)}
       />
 
       <main className="flex-1 flex flex-col justify-center">
@@ -86,11 +83,6 @@ export function App() {
           />
         )}
       </main>
-
-      <ArchitectureModal
-        isOpen={isArchModalOpen}
-        onClose={() => setIsArchModalOpen(false)}
-      />
     </div>
   );
 }
