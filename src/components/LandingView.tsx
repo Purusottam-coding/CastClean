@@ -41,6 +41,22 @@ export const LandingView: React.FC<LandingViewProps> = ({
     onStartHost(hostRoomCode, hostName.trim() || 'Host', requireApproval);
   };
 
+  const handlePasteJoinCode = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text');
+    if (pasted) {
+      setJoinCode(sanitizeRoomCode(pasted));
+    }
+  };
+
+  const handlePasteHostCode = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text');
+    if (pasted) {
+      setHostRoomCode(sanitizeRoomCode(pasted));
+    }
+  };
+
   const handleViewerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const clean = sanitizeRoomCode(joinCode);
@@ -106,7 +122,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 type="text"
                 value={hostRoomCode}
                 onChange={(e) => setHostRoomCode(sanitizeRoomCode(e.target.value))}
-                maxLength={8}
+                onPaste={handlePasteHostCode}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-zinc-100 uppercase focus:outline-none focus:border-zinc-500"
                 required
               />
@@ -171,8 +187,8 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 type="text"
                 value={joinCode}
                 onChange={(e) => setJoinCode(sanitizeRoomCode(e.target.value))}
+                onPaste={handlePasteJoinCode}
                 placeholder="K7M9P2"
-                maxLength={8}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-zinc-100 uppercase focus:outline-none focus:border-zinc-500"
                 required
               />
