@@ -1,11 +1,12 @@
 export type UserRole = 'host' | 'viewer';
 
+export type ParticipantStatus = 'knocking' | 'approved' | 'rejected' | 'connected';
+
 export interface ViewerParticipant {
   id: string;
   displayName: string;
+  status: ParticipantStatus;
   joinedAt: number;
-  status: 'knocking' | 'approved' | 'rejected' | 'connected';
-  audioMuted?: boolean;
 }
 
 export type DataChannelMessage =
@@ -25,15 +26,20 @@ export type DataChannelMessage =
       reason?: string;
     }
   | {
-      type: 'PRIVACY_CURTAIN_STATE';
+      type: 'PRIVACY_CURTAIN';
       active: boolean;
     }
   | {
-      type: 'STREAM_ENDED';
-      reason?: string;
+      type: 'STREAM_STATUS';
+      isSharing: boolean;
+      isAudioMuted: boolean;
     }
   | {
-      type: 'KICK_VIEWER';
+      type: 'KICK';
+      viewerId: string;
+    }
+  | {
+      type: 'LEAVE';
       viewerId: string;
     }
   | {
@@ -44,30 +50,15 @@ export type DataChannelMessage =
       text: string;
       timestamp: number;
       isHost?: boolean;
-    }
-  | {
-      type: 'REACTION';
-      id: string;
-      senderName: string;
-      emoji: string;
-      timestamp: number;
     };
 
-export interface StreamQualityPreset {
-  id: 'smooth-60' | 'crisp-text' | 'balanced';
-  label: string;
-  description: string;
-  frameRate: number;
-  width?: number;
-  height?: number;
-}
-
-export interface PeerStats {
+export interface WebRTCStats {
   rttMs: number;
   fps: number;
   width: number;
   height: number;
   bitrateKbps: number;
   packetLossPercent: number;
-  connectionType: string;
+  bytesReceived?: number;
+  candidateType?: string;
 }

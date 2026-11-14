@@ -42,11 +42,11 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
     return (
       <button
         onClick={onToggle}
-        className="fixed bottom-6 right-6 z-40 bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-full shadow-lg shadow-indigo-600/30 transition transform hover:scale-105 flex items-center justify-center relative"
+        className="fixed bottom-4 right-4 z-40 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white p-3 rounded-full shadow-lg transition flex items-center justify-center relative"
       >
-        <MessageSquare className="w-5 h-5" />
+        <MessageSquare className="w-4 h-4" />
         {messages.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-violet-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950">
+          <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
             {messages.length}
           </span>
         )}
@@ -55,49 +55,34 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 w-80 sm:w-96 h-[460px] bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-        <div className="flex items-center space-x-2">
-          <MessageSquare className="w-4 h-4 text-indigo-400" />
-          <h3 className="font-semibold text-sm text-slate-200">Live Chat</h3>
-          <span className="text-[11px] text-slate-400">({messages.length})</span>
+    <div className="fixed bottom-4 right-4 z-40 w-80 h-96 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div className="flex items-center space-x-1.5">
+          <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+          <span className="font-semibold text-xs text-white">DataChannel Chat</span>
+          <span className="text-[10px] text-slate-500">({messages.length})</span>
         </div>
         <button
           onClick={onToggle}
-          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+          className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+      <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center px-4">
-            <MessageSquare className="w-8 h-8 stroke-1 mb-2 opacity-50" />
-            <p>No messages yet.</p>
-            <p className="text-[11px]">Chat directly over the P2P DataChannel.</p>
-          </div>
+          <p className="text-slate-500 text-center py-8 text-[11px]">No messages yet.</p>
         ) : (
           messages.map((m) => (
-            <div key={m.id} className="flex flex-col space-y-0.5">
+            <div key={m.id} className="space-y-0.5">
               <div className="flex items-center space-x-1.5">
-                <span
-                  className={`font-semibold ${
-                    m.isHost ? 'text-indigo-400' : 'text-slate-300'
-                  }`}
-                >
+                <span className={`font-semibold ${m.isHost ? 'text-indigo-400' : 'text-slate-300'}`}>
                   {m.sender}
                 </span>
-                {m.isHost && (
-                  <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                    HOST
-                  </span>
-                )}
                 <span className="text-[10px] text-slate-500">{m.time}</span>
               </div>
-              <p className="text-slate-200 bg-slate-800/60 rounded-xl px-3 py-2 border border-slate-700/40 break-words leading-relaxed">
+              <p className="text-slate-200 bg-slate-950 rounded px-2.5 py-1.5 border border-slate-800 break-words">
                 {m.text}
               </p>
             </div>
@@ -106,21 +91,20 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-slate-800 bg-slate-950/40 flex items-center space-x-2">
+      <form onSubmit={handleSubmit} className="p-2 border-t border-slate-800 bg-slate-950 flex space-x-1.5">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Send a message..."
-          className="flex-1 bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+          placeholder="Message..."
+          className="flex-1 bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition shadow-sm"
+          className="p-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-3.5 h-3.5" />
         </button>
       </form>
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Shield, Lock, Radio, Tv, Layers } from 'lucide-react';
+import { X, Layers } from 'lucide-react';
 
 interface ArchitectureModalProps {
   isOpen: boolean;
@@ -10,87 +10,60 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-xl p-5 shadow-xl max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
           <div className="flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-indigo-400" />
-            <h3 className="font-bold text-white text-base">CastClean Architecture & Privacy Controls</h3>
+            <Layers className="w-4 h-4 text-indigo-400" />
+            <span className="font-semibold text-sm text-white">CastClean Architecture</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="mt-4 space-y-5 text-xs text-slate-300 leading-relaxed">
+        <div className="space-y-4 text-xs text-slate-300 leading-normal">
           <p>
-            Unlike traditional video conferencing software that uploads, transcodes, and relays screen pixels through intermediate media servers (SFUs/MCUs), <strong className="text-white">CastClean</strong> connects the host directly to viewers over peer-to-peer WebRTC.
+            CastClean operates entirely peer-to-peer over WebRTC, eliminating media server upload and transcode hops.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/20">
-                1
-              </div>
-              <h4 className="font-semibold text-white flex items-center space-x-1">
-                <Radio className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Broker Handshake</span>
-              </h4>
-              <p className="text-slate-400 text-[11px]">
-                Host registers a 6-character room ID (e.g. <code className="text-indigo-300">castclean-K7M9P2</code>). Viewer connects via reliable DataChannel.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs border border-amber-500/20">
-                2
-              </div>
-              <h4 className="font-semibold text-white flex items-center space-x-1">
-                <Shield className="w-3.5 h-3.5 text-amber-400" />
-                <span>Privacy Lobby Gate</span>
-              </h4>
-              <p className="text-slate-400 text-[11px]">
-                Viewer enters a waiting lobby. If approval is required, host sees the knock and clicks Allow or Decline before any video packets stream.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/20">
-                3
-              </div>
-              <h4 className="font-semibold text-white flex items-center space-x-1">
-                <Tv className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Zero-Delay P2P</span>
-              </h4>
-              <p className="text-slate-400 text-[11px]">
-                Direct encrypted UDP connection transmits 60fps screen frames with sub-50ms latency. No video ever touches a backend server.
-              </p>
-            </div>
+          <div className="space-y-2 border-l-2 border-indigo-500/50 pl-3">
+            <h4 className="font-semibold text-white">1. Signaling Handshake (PeerJS Broker)</h4>
+            <p className="text-slate-400">
+              Host registers a 6-character room ID prefixed with <code className="text-slate-200">castclean-</code>. Viewer connects to that ID using a reliable WebRTC DataChannel (<code className="text-slate-200">peer.connect</code>).
+            </p>
           </div>
 
-          {/* Privacy Curtain Highlight */}
-          <div className="p-4 bg-gradient-to-r from-violet-950/40 via-indigo-950/30 to-slate-950 rounded-xl border border-violet-800/40 space-y-2">
-            <div className="flex items-center space-x-2 text-violet-300 font-semibold">
-              <Lock className="w-4 h-4" />
-              <span>Zero-Leak Privacy Curtain</span>
-            </div>
-            <p className="text-slate-300 text-[11px]">
-              When the host engages the <strong>Privacy Curtain</strong> (e.g., to enter credentials or check personal messages), CastClean uses <code className="bg-slate-900 px-1 py-0.5 rounded text-violet-200">RTCRtpSender.replaceTrack()</code> to instantly swap the live screen track with an active synthetic curtain canvas.
+          <div className="space-y-2 border-l-2 border-amber-500/50 pl-3">
+            <h4 className="font-semibold text-white">2. Privacy Lobby Gatekeeper</h4>
+            <p className="text-slate-400">
+              Before video frames are transmitted, the Viewer sends a <code className="text-slate-200">REQUEST_ACCESS</code> payload containing their display name. If approval is required, the host explicitly clicks Allow or Decline.
             </p>
-            <p className="text-slate-400 text-[11px]">
-              This guarantees that not a single private pixel leaks, avoids frozen video decoder bugs, and allows instant resumption without WebRTC renegotiation lag.
+          </div>
+
+          <div className="space-y-2 border-l-2 border-emerald-500/50 pl-3">
+            <h4 className="font-semibold text-white">3. Direct P2P Media Stream</h4>
+            <p className="text-slate-400">
+              Once approved, the Host initiates a WebRTC MediaConnection (<code className="text-slate-200">peer.call</code>) directly to the Viewer’s browser over encrypted UDP/ICE channels.
+            </p>
+          </div>
+
+          <div className="space-y-2 border-l-2 border-slate-600 pl-3">
+            <h4 className="font-semibold text-white">4. Privacy Curtain (Track Replace)</h4>
+            <p className="text-slate-400">
+              Host replaces the active video track on all peer senders using <code className="text-slate-200">RTCRtpSender.replaceTrack()</code> with an active standby slate, preventing frame leaks with zero renegotiation latency.
             </p>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="mt-6 w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition shadow-md shadow-indigo-600/20"
+          className="mt-5 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg transition"
         >
-          Got it
+          Close
         </button>
       </div>
     </div>

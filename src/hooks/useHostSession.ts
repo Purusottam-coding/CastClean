@@ -3,7 +3,6 @@ import Peer, { type DataConnection, type MediaConnection } from 'peerjs';
 import type { ViewerParticipant, DataChannelMessage } from '../types';
 import { getHostPeerId } from '../utils/room';
 import { PrivacyCurtainStream } from '../utils/curtainCanvas';
-import { playKnockChime, playCurtainChime } from '../utils/audioChime';
 
 interface UseHostSessionOptions {
   roomCode: string;
@@ -19,20 +18,20 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [participants, setParticipants] = useState<ViewerParticipant[]>([]);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: string; text: string; time: string; isHost?: boolean }>>([]);
-  const [activeReactions, setActiveReactions] = useState<Array<{ id: string; emoji: string; senderName: string }>>([]);
 
   const peerRef = useRef<Peer | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const curtainStreamRef = useRef<PrivacyCurtainStream | null>(null);
   const connectionsRef = useRef<Map<string, DataConnection>>(new Map());
   const mediaCallsRef = useRef<Map<string, MediaConnection>>(new Map());
+
   const requireApprovalRef = useRef(requireApproval);
   requireApprovalRef.current = requireApproval;
 
   const isCurtainActiveRef = useRef(isCurtainActive);
   isCurtainActiveRef.current = isCurtainActive;
 
-  // Initialize privacy curtain generator early
+  // Initialize Privacy Curtain slate
   useEffect(() => {
     curtainStreamRef.current = new PrivacyCurtainStream();
     return () => {
@@ -41,7 +40,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     };
   }, []);
 
-  // Broadcast a DataChannel message to all connected viewers
+  // Broadcast payload to all active DataChannels
   const broadcast = useCallback((msg: DataChannelMessage) => {
     connectionsRef.current.forEach((conn) => {
       if (conn.open) {
@@ -50,61 +49,58 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     });
   }, []);
 
-  // Get current active video track (either real screen or curtain)
-  const getCurrentVideoTrack = useCallback((): MediaStreamTrack | null => {
+  // Determine current active video track
+  const getActiveVideoTrack = useCallback((): MediaStreamTrack | null => {
     if (isCurtainActiveRef.current && curtainStreamRef.current?.track) {
       return curtainStreamRef.current.track;
     }
     return screenStreamRef.current?.getVideoTracks()[0] || null;
   }, []);
 
-  // Get combined media stream to send to a new peer
-  const getOutgoingStream = useCallback((): MediaStream => {
+  // Build stream payload for WebRTC call
+  const buildOutgoingStream = useCallback((): MediaStream => {
     const stream = new MediaStream();
-    const vidTrack = getCurrentVideoTrack();
-    if (vidTrack) {
-      stream.addTrack(vidTrack);
+    const videoTrack = getActiveVideoTrack();
+    if (videoTrack) {
+      stream.addTrack(videoTrack);
     }
-    // Also include screen audio track if available and not muted
     const audioTrack = screenStreamRef.current?.getAudioTracks()[0];
     if (audioTrack && audioTrack.enabled) {
       stream.addTrack(audioTrack);
     }
     return stream;
-  }, [getCurrentVideoTrack]);
+  }, [getActiveVideoTrack]);
 
-  // Call a viewer with current stream
+  // Initiate media call to an approved viewer
   const callViewer = useCallback((viewerId: string) => {
-    if (!peerRef.current || peerRef.current.destroyed) return;
-    const outgoingStream = getOutgoingStream();
-    if (outgoingStream.getTracks().length === 0) {
-      console.warn('No active tracks to call viewer with');
-      return;
-    }
+    const peer = peerRef.current;
+    if (!peer || peer.destroyed) return;
 
-    // Close existing call if any
+    const stream = buildOutgoingStream();
+    if (stream.getTracks().length === 0) return;
+
     const existingCall = mediaCallsRef.current.get(viewerId);
     if (existingCall) {
       existingCall.close();
     }
 
     try {
-      const call = peerRef.current.call(viewerId, outgoingStream);
+      const call = peer.call(viewerId, stream);
       mediaCallsRef.current.set(viewerId, call);
 
       call.on('close', () => {
         mediaCallsRef.current.delete(viewerId);
       });
       call.on('error', (err) => {
-        console.error(`Media call error for ${viewerId}:`, err);
+        console.error(`Media call error with viewer ${viewerId}:`, err);
         mediaCallsRef.current.delete(viewerId);
       });
     } catch (err) {
-      console.error('Failed to initiate media call to viewer:', err);
+      console.error(`Failed to call viewer ${viewerId}:`, err);
     }
-  }, [getOutgoingStream]);
+  }, [buildOutgoingStream]);
 
-  // Approve a knocking viewer
+  // Approve knocking viewer
   const approveViewer = useCallback((viewerId: string) => {
     const conn = connectionsRef.current.get(viewerId);
     if (conn && conn.open) {
@@ -119,34 +115,33 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       prev.map((p) => (p.id === viewerId ? { ...p, status: 'approved' } : p))
     );
 
-    // Call viewer with stream
     if (screenStreamRef.current) {
       callViewer(viewerId);
     }
   }, [hostName, callViewer]);
 
-  // Decline a knocking viewer
-  const declineViewer = useCallback((viewerId: string, reason = 'Access declined by host') => {
+  // Decline knocking viewer
+  const declineViewer = useCallback((viewerId: string, reason = 'Access declined by host.') => {
     const conn = connectionsRef.current.get(viewerId);
     if (conn && conn.open) {
       conn.send({
         type: 'ACCESS_DENIED',
         reason,
       });
-      setTimeout(() => conn.close(), 500);
+      setTimeout(() => conn.close(), 300);
     }
     setParticipants((prev) => prev.filter((p) => p.id !== viewerId));
   }, []);
 
-  // Kick a viewer
+  // Disconnect / Kick viewer
   const kickViewer = useCallback((viewerId: string) => {
     const conn = connectionsRef.current.get(viewerId);
     if (conn && conn.open) {
       conn.send({
-        type: 'KICK_VIEWER',
+        type: 'KICK',
         viewerId,
       });
-      setTimeout(() => conn.close(), 300);
+      setTimeout(() => conn.close(), 200);
     }
     const call = mediaCallsRef.current.get(viewerId);
     if (call) {
@@ -156,56 +151,64 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     setParticipants((prev) => prev.filter((p) => p.id !== viewerId));
   }, []);
 
-  // Toggle Privacy Curtain with WebRTC track replacement
+  // Toggle Privacy Curtain with atomic track replacement
   const togglePrivacyCurtain = useCallback(() => {
     const nextState = !isCurtainActiveRef.current;
     setIsCurtainActive(nextState);
     isCurtainActiveRef.current = nextState;
-    playCurtainChime(nextState);
 
-    const replacementTrack = nextState
-      ? curtainStreamRef.current?.track
-      : screenStreamRef.current?.getVideoTracks()[0];
+    const realTrack = screenStreamRef.current?.getVideoTracks()[0];
+    const curtainTrack = curtainStreamRef.current?.track;
 
-    if (!replacementTrack) {
-      console.warn('No replacement track available for curtain toggle');
-      return;
+    const targetTrack = nextState ? curtainTrack : realTrack;
+    if (!targetTrack) return;
+
+    if (realTrack) {
+      // Hardware-level pixel mute when curtain is active
+      realTrack.enabled = !nextState;
     }
 
-    // Replace track on all active MediaConnection senders
+    // Replace video track on all active peer senders
     mediaCallsRef.current.forEach((call) => {
       try {
         const pc = call.peerConnection;
         if (pc) {
           const senders = pc.getSenders();
-          const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
+          const videoSender = senders.find(
+            (s) => (s.track && s.track.kind === 'video') || (s as { kind?: string }).kind === 'video'
+          );
           if (videoSender) {
-            videoSender.replaceTrack(replacementTrack);
+            videoSender.replaceTrack(targetTrack);
           }
         }
       } catch (err) {
-        console.error('Error replacing track on peer connection:', err);
+        console.error('Error replacing track on sender:', err);
       }
     });
 
-    // Notify all viewers via DataChannel
     broadcast({
-      type: 'PRIVACY_CURTAIN_STATE',
+      type: 'PRIVACY_CURTAIN',
       active: nextState,
     });
   }, [broadcast]);
 
-  // Toggle Screen Audio Mute
+  // Screen audio toggle
   const toggleAudio = useCallback(() => {
     if (!screenStreamRef.current) return;
     const audioTrack = screenStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
       setIsAudioMuted(!audioTrack.enabled);
-    }
-  }, []);
 
-  // Stop Screen Sharing
+      broadcast({
+        type: 'STREAM_STATUS',
+        isSharing: true,
+        isAudioMuted: !audioTrack.enabled,
+      });
+    }
+  }, [broadcast]);
+
+  // Stop screen sharing
   const stopSharing = useCallback(() => {
     if (screenStreamRef.current) {
       screenStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -214,17 +217,17 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     setIsSharing(false);
     setIsCurtainActive(false);
 
-    // Close all media calls
     mediaCallsRef.current.forEach((call) => call.close());
     mediaCallsRef.current.clear();
 
     broadcast({
-      type: 'STREAM_ENDED',
-      reason: 'Host stopped screen sharing',
+      type: 'STREAM_STATUS',
+      isSharing: false,
+      isAudioMuted: true,
     });
   }, [broadcast]);
 
-  // Start Screen Sharing
+  // Start screen sharing
   const startSharing = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -234,17 +237,12 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
+        audio: true,
       });
 
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.contentHint = 'detail';
-        // Handle native browser "Stop sharing" button click
         videoTrack.onended = () => {
           stopSharing();
         };
@@ -257,19 +255,25 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       const audioTrack = stream.getAudioTracks()[0];
       setIsAudioMuted(!audioTrack || !audioTrack.enabled);
 
-      // Call all already approved/connected viewers
+      // Re-call or replace tracks for all approved participants
       participants.forEach((p) => {
         if (p.status === 'approved' || p.status === 'connected') {
           callViewer(p.id);
         }
       });
 
+      broadcast({
+        type: 'STREAM_STATUS',
+        isSharing: true,
+        isAudioMuted: !audioTrack || !audioTrack.enabled,
+      });
+
       return true;
     } catch (err) {
-      console.error('Failed to getDisplayMedia:', err);
+      console.warn('Screen share request cancelled or failed:', err);
       return false;
     }
-  }, [participants, callViewer, stopSharing]);
+  }, [participants, callViewer, stopSharing, broadcast]);
 
   // Send a chat message
   const sendChatMessage = useCallback((text: string) => {
@@ -300,14 +304,13 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     });
   }, [hostName, broadcast]);
 
-  // Initialize PeerJS Host
+  // Setup PeerJS Host
   useEffect(() => {
     const hostPeerId = getHostPeerId(roomCode);
     let peer: Peer;
 
     try {
       peer = new Peer(hostPeerId, {
-        debug: 1,
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -316,7 +319,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
         },
       });
     } catch (err) {
-      console.error('Failed to instantiate Peer:', err);
+      console.error('Peer initialization failure:', err);
       setPeerError('Failed to initialize WebRTC Peer broker');
       return;
     }
@@ -331,13 +334,12 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     peer.on('error', (err) => {
       console.error('PeerJS error:', err);
       if (err.type === 'unavailable-id') {
-        setPeerError(`Room code "${roomCode}" is already in use by an active host.`);
+        setPeerError(`Room code "${roomCode}" is currently in use.`);
       } else {
-        setPeerError(`WebRTC error: ${err.message || err.type}`);
+        setPeerError(err.message || 'WebRTC connection error');
       }
     });
 
-    // Handle incoming DataConnection (Viewer knock / handshake)
     peer.on('connection', (conn) => {
       connectionsRef.current.set(conn.peer, conn);
 
@@ -346,22 +348,19 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
           const payload = data as DataChannelMessage;
 
           if (payload.type === 'REQUEST_ACCESS') {
-            const newParticipant: ViewerParticipant = {
+            const participant: ViewerParticipant = {
               id: payload.viewerId,
               displayName: payload.displayName || 'Anonymous Viewer',
-              joinedAt: payload.timestamp || Date.now(),
               status: requireApprovalRef.current ? 'knocking' : 'approved',
+              joinedAt: payload.timestamp || Date.now(),
             };
 
             setParticipants((prev) => {
-              const filtered = prev.filter((p) => p.id !== newParticipant.id);
-              return [...filtered, newParticipant];
+              const filtered = prev.filter((p) => p.id !== participant.id);
+              return [...filtered, participant];
             });
 
-            if (requireApprovalRef.current) {
-              playKnockChime();
-            } else {
-              // Auto-approve
+            if (!requireApprovalRef.current) {
               conn.send({
                 type: 'ACCESS_GRANTED',
                 hostName,
@@ -382,21 +381,18 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
                 isHost: false,
               },
             ]);
-            // Relay to other viewers
             broadcast(payload);
-          } else if (payload.type === 'REACTION') {
-            setActiveReactions((prev) => [
-              ...prev,
-              { id: payload.id, emoji: payload.emoji, senderName: payload.senderName },
-            ]);
-            setTimeout(() => {
-              setActiveReactions((prev) => prev.filter((r) => r.id !== payload.id));
-            }, 3000);
-            // Relay reaction to other viewers
-            broadcast(payload);
+          } else if (payload.type === 'LEAVE') {
+            connectionsRef.current.delete(payload.viewerId);
+            setParticipants((prev) => prev.filter((p) => p.id !== payload.viewerId));
+            const call = mediaCallsRef.current.get(payload.viewerId);
+            if (call) {
+              call.close();
+              mediaCallsRef.current.delete(payload.viewerId);
+            }
           }
         } catch (e) {
-          console.error('Error parsing data message:', e);
+          console.error('Error handling data channel message:', e);
         }
       });
 
@@ -429,7 +425,6 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     isAudioMuted,
     participants,
     chatMessages,
-    activeReactions,
     screenStream: screenStreamRef.current,
     startSharing,
     stopSharing,
