@@ -51,24 +51,24 @@ export const LandingView: React.FC<LandingViewProps> = ({
   return (
     <div className="max-w-xl mx-auto px-4 py-12 flex flex-col items-center">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-white">
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
           Direct P2P Screen Sharing
         </h1>
-        <p className="mt-2 text-xs text-slate-400 max-w-md mx-auto">
+        <p className="mt-2 text-xs text-zinc-400 max-w-md mx-auto">
           Browser-to-browser WebRTC screen transmission with track-level privacy controls and knock gatekeeper.
         </p>
       </div>
 
-      <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+      <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl">
         {/* Tab Switcher */}
-        <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 mb-6">
+        <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-800 mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('host')}
             className={`flex-1 py-2 text-xs font-medium rounded-md transition flex items-center justify-center space-x-1.5 ${
               activeTab === 'host'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-zinc-800 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             <Cast className="w-3.5 h-3.5" />
@@ -79,8 +79,8 @@ export const LandingView: React.FC<LandingViewProps> = ({
             onClick={() => setActiveTab('join')}
             className={`flex-1 py-2 text-xs font-medium rounded-md transition flex items-center justify-center space-x-1.5 ${
               activeTab === 'join'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-zinc-800 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             <Tv className="w-3.5 h-3.5" />
@@ -92,11 +92,11 @@ export const LandingView: React.FC<LandingViewProps> = ({
           <form onSubmit={handleHostSubmit} className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-slate-300">Room Code</label>
+                <label className="text-xs font-medium text-zinc-300">Room Code</label>
                 <button
                   type="button"
                   onClick={handleRegenerateCode}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1"
+                  className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center space-x-1"
                 >
                   <RefreshCw className="w-3 h-3" />
                   <span>Generate New</span>
@@ -107,13 +107,13 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 value={hostRoomCode}
                 onChange={(e) => setHostRoomCode(sanitizeRoomCode(e.target.value))}
                 maxLength={8}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-indigo-300 uppercase focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-zinc-100 uppercase focus:outline-none focus:border-zinc-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
                 Host Name
               </label>
               <input
@@ -121,33 +121,33 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 value={hostName}
                 onChange={(e) => setHostName(e.target.value)}
                 placeholder="Host"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
               />
             </div>
 
-            {/* Redesigned Require Approval Toggle */}
+            {/* Require Approval Toggle */}
             <div
               onClick={() => setRequireApproval(!requireApproval)}
-              className="flex items-center justify-between p-3.5 bg-slate-950/80 rounded-lg border border-slate-800 hover:border-slate-700/80 cursor-pointer select-none transition-colors"
+              className="flex items-center justify-between p-3.5 bg-zinc-950/80 rounded-lg border border-zinc-800 hover:border-zinc-700/80 cursor-pointer select-none transition-colors"
             >
               <div className="pr-3">
-                <div className="text-xs font-semibold text-slate-200">
+                <div className="text-xs font-semibold text-zinc-200">
                   Require approval before viewing
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                <div className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
                   Viewers wait in a lobby until you approve their request.
                 </div>
               </div>
 
-              {/* iOS-style custom toggle switch */}
+              {/* Clean neutral toggle switch */}
               <div
                 className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out shrink-0 ${
-                  requireApproval ? 'bg-indigo-600' : 'bg-slate-800'
+                  requireApproval ? 'bg-zinc-200' : 'bg-zinc-800'
                 }`}
               >
                 <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                    requireApproval ? 'translate-x-5' : 'translate-x-0'
+                  className={`w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${
+                    requireApproval ? 'translate-x-5 bg-zinc-900' : 'translate-x-0 bg-zinc-400'
                   }`}
                 />
               </div>
@@ -155,7 +155,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
             <button
               type="submit"
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+              className="w-full py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow-sm"
             >
               <span>Start Host Session</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -164,7 +164,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
         ) : (
           <form onSubmit={handleViewerSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
                 6-Character Room Code
               </label>
               <input
@@ -173,13 +173,13 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 onChange={(e) => setJoinCode(sanitizeRoomCode(e.target.value))}
                 placeholder="K7M9P2"
                 maxLength={8}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-indigo-300 uppercase focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-base font-mono font-bold text-center tracking-widest text-zinc-100 uppercase focus:outline-none focus:border-zinc-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
                 Your Display Name
               </label>
               <input
@@ -187,7 +187,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 value={viewerName}
                 onChange={(e) => setViewerName(e.target.value)}
                 placeholder="Viewer"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
                 required
               />
             </div>
@@ -195,7 +195,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             <button
               type="submit"
               disabled={!joinCode}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+              className="w-full py-2.5 bg-zinc-100 hover:bg-white disabled:opacity-40 text-zinc-950 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow-sm"
             >
               <span>Connect to Room</span>
               <ArrowRight className="w-3.5 h-3.5" />

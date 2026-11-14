@@ -39,12 +39,12 @@ export class PrivacyCurtainStream {
     const w = canvas.width;
     const h = canvas.height;
 
-    // Solid dark slate background
-    ctx.fillStyle = '#0f172a';
+    // Solid dark neutral background
+    ctx.fillStyle = '#09090b';
     ctx.fillRect(0, 0, w, h);
 
     // Subtle border
-    ctx.strokeStyle = '#1e293b';
+    ctx.strokeStyle = '#27272a';
     ctx.lineWidth = 2;
     ctx.strokeRect(40, 40, w - 80, h - 80);
 
@@ -52,9 +52,9 @@ export class PrivacyCurtainStream {
     const cy = h / 2 - 30;
 
     // Shield outline
-    ctx.strokeStyle = '#38bdf8';
+    ctx.strokeStyle = '#a1a1aa';
     ctx.lineWidth = 4;
-    ctx.fillStyle = '#1e293b';
+    ctx.fillStyle = '#18181b';
     ctx.beginPath();
     ctx.moveTo(cx, cy - 60);
     ctx.quadraticCurveTo(cx + 50, cy - 60, cx + 50, cy);
