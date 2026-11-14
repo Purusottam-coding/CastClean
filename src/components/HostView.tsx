@@ -320,7 +320,7 @@ export const HostView: React.FC<HostViewProps> = ({
         {/* Right Column: Waiting (Requests) + Active Viewers Section */}
         <div className="lg:col-span-4 flex flex-col space-y-4">
           {/* Waiting Section (Knocking Viewers requesting access) */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm min-h-[250px] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-zinc-400" />
@@ -340,61 +340,63 @@ export const HostView: React.FC<HostViewProps> = ({
             </div>
 
             {/* Waiting List */}
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-2 flex-1 flex flex-col justify-center">
               {knockingParticipants.length === 0 ? (
-                <div className="text-center py-5 px-2">
-                  <UserCheck className="w-6 h-6 text-zinc-600 mx-auto mb-1.5" />
+                <div className="text-center py-6 px-2">
+                  <UserCheck className="w-7 h-7 text-zinc-600 mx-auto mb-2" />
                   <p className="text-xs font-medium text-zinc-400">No viewers waiting</p>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Viewers requesting access will appear here.
+                  <p className="text-[11px] text-zinc-500 mt-1 max-w-[220px] mx-auto">
+                    Viewers requesting access will appear here for approval.
                   </p>
                 </div>
               ) : (
-                knockingParticipants.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 transition"
-                  >
-                    <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-                      <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 text-zinc-200 font-semibold text-xs">
-                        {p.displayName.charAt(0).toUpperCase()}
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
+                  {knockingParticipants.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 hover:border-zinc-700 transition"
+                    >
+                      <div className="flex items-center space-x-2.5 min-w-0 pr-2">
+                        <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 text-zinc-200 font-semibold text-xs">
+                          {p.displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-zinc-200 truncate">
+                            {p.displayName}
+                          </p>
+                          <p className="text-[10px] text-zinc-400">
+                            Requesting access...
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-zinc-200 truncate">
-                          {p.displayName}
-                        </p>
-                        <p className="text-[10px] text-zinc-400">
-                          Requesting access...
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center space-x-1.5 shrink-0">
-                      <button
-                        onClick={() => approveViewer(p.id)}
-                        className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 text-xs font-medium flex items-center space-x-1 transition shadow-sm"
-                        title="Allow Viewer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Allow</span>
-                      </button>
-                      <button
-                        onClick={() => declineViewer(p.id)}
-                        className="px-2 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-red-300 text-xs font-medium flex items-center space-x-1 transition"
-                        title="Decline Viewer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Decline</span>
-                      </button>
+                      <div className="flex items-center space-x-1.5 shrink-0">
+                        <button
+                          onClick={() => approveViewer(p.id)}
+                          className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 text-xs font-medium flex items-center space-x-1 transition shadow-sm"
+                          title="Allow Viewer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Allow</span>
+                        </button>
+                        <button
+                          onClick={() => declineViewer(p.id)}
+                          className="px-2 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-red-300 text-xs font-medium flex items-center space-x-1 transition"
+                          title="Decline Viewer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Decline</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
           {/* Active Viewers Section */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm min-h-[260px] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-zinc-400" />
@@ -408,63 +410,71 @@ export const HostView: React.FC<HostViewProps> = ({
             </div>
 
             {/* Connected Viewers List */}
-            <div className="mt-3 space-y-2 max-h-72 overflow-y-auto pr-0.5">
+            <div className="mt-3 flex-1 flex flex-col">
               {approvedParticipants.length === 0 ? (
-                <div className="text-center py-5 px-2">
-                  <Users className="w-6 h-6 text-zinc-600 mx-auto mb-1.5" />
+                <div className="text-center py-6 px-2 my-auto">
+                  <Users className="w-7 h-7 text-zinc-600 mx-auto mb-2" />
                   <p className="text-xs font-medium text-zinc-400">No viewers connected</p>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Share room code or invite link to connect.
+                  <p className="text-[11px] text-zinc-500 mt-1 max-w-[220px] mx-auto">
+                    Share room code or invite link to connect viewers.
                   </p>
                 </div>
               ) : (
-                approvedParticipants.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs"
-                  >
-                    <div className="flex items-center space-x-2 min-w-0 pr-2">
-                      <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 text-zinc-300 font-semibold text-[11px]">
-                        {p.displayName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-zinc-200 truncate">{p.displayName}</div>
-                        <div className="mt-0.5">
-                          {p.isMicMuted ? (
-                            <span className="text-[10px] text-zinc-500 flex items-center space-x-1">
-                              <MicOff className="w-2.5 h-2.5" />
-                              <span>Muted</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-emerald-400 flex items-center space-x-1">
-                              <Mic className="w-2.5 h-2.5" />
-                              <span>Speaking</span>
-                            </span>
-                          )}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                  {approvedParticipants.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs"
+                    >
+                      <div className="flex items-center space-x-2.5 min-w-0 pr-2">
+                        <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 text-zinc-300 font-semibold text-xs">
+                          {p.displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-zinc-200 truncate">{p.displayName}</div>
+                          <div className="mt-0.5">
+                            {p.isMicMuted ? (
+                              <span className="text-[11px] text-zinc-500 flex items-center space-x-1">
+                                <MicOff className="w-3 h-3 text-zinc-500" />
+                                <span>Muted</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-zinc-400 flex items-center space-x-1">
+                                <Mic className="w-3 h-3 text-zinc-400" />
+                                <span>Speaking</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-1.5 shrink-0">
-                      {!p.isMicMuted && (
+                      <div className="flex items-center space-x-2 shrink-0">
+                        {/* Mute symbol button only - larger for easy clicking */}
                         <button
                           onClick={() => forceMuteViewer(p.id)}
-                          className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] border border-zinc-700 transition"
-                          title="Mute viewer"
+                          disabled={p.isMicMuted}
+                          className={`w-8 h-8 rounded-lg border transition flex items-center justify-center ${
+                            p.isMicMuted
+                              ? 'bg-zinc-900 border-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
+                              : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-200 hover:text-white shadow-sm'
+                          }`}
+                          title={p.isMicMuted ? 'Viewer is already muted' : 'Mute viewer'}
                         >
-                          Mute
+                          <MicOff className="w-4 h-4" />
                         </button>
-                      )}
-                      <button
-                        onClick={() => kickViewer(p.id)}
-                        className="px-2 py-1 rounded bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 text-[11px] transition"
-                        title="Disconnect viewer"
-                      >
-                        Remove
-                      </button>
+
+                        {/* Remove text only - button box removed */}
+                        <button
+                          onClick={() => kickViewer(p.id)}
+                          className="text-xs text-zinc-400 hover:text-red-400 hover:underline transition px-1.5 py-1 font-medium"
+                          title="Remove viewer"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>
