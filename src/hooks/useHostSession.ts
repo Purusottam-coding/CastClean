@@ -18,6 +18,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
   const [isCurtainActive, setIsCurtainActive] = useState(false);
   const [isScreenAudioMuted, setIsScreenAudioMuted] = useState(false);
   const [isHostMicMuted, setIsHostMicMuted] = useState(true);
+  const [micError, setMicError] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ViewerParticipant[]>([]);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: string; text: string; time: string; isHost?: boolean }>>([]);
 
@@ -203,6 +204,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
 
   // Toggle Host Microphone
   const toggleHostMic = useCallback(async () => {
+    setMicError(null);
     if (isHostMicMuted) {
       try {
         let stream = hostMicStreamRef.current;
@@ -230,8 +232,10 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
           participantId: 'host',
           isMicMuted: false,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         console.warn('Microphone permission denied or not available:', err);
+        const errorMsg = (err instanceof Error) ? err.message : 'Microphone access denied';
+        setMicError(`Microphone access blocked: ${errorMsg}. Please allow microphone permission in your browser.`);
       }
     } else {
       if (hostMicStreamRef.current) {
@@ -586,6 +590,8 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     isCurtainActive,
     isScreenAudioMuted,
     isHostMicMuted,
+    micError,
+    clearMicError: () => setMicError(null),
     participants,
     chatMessages,
     screenStream: screenStreamRef.current,

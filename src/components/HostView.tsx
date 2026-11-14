@@ -41,6 +41,8 @@ export const HostView: React.FC<HostViewProps> = ({
     isCurtainActive,
     isScreenAudioMuted,
     isHostMicMuted,
+    micError,
+    clearMicError,
     participants,
     chatMessages,
     screenStream,
@@ -100,6 +102,21 @@ export const HostView: React.FC<HostViewProps> = ({
             className="px-2.5 py-1 bg-red-800 hover:bg-red-700 rounded text-white"
           >
             Leave
+          </button>
+        </div>
+      )}
+
+      {micError && (
+        <div className="p-3 bg-red-950/70 border border-red-800 rounded-lg flex items-center justify-between text-xs text-red-200">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            <span>{micError}</span>
+          </div>
+          <button
+            onClick={clearMicError}
+            className="text-zinc-400 hover:text-white px-2 py-0.5"
+          >
+            ✕
           </button>
         </div>
       )}
@@ -255,27 +272,29 @@ export const HostView: React.FC<HostViewProps> = ({
                 )}
               </button>
 
-              <button
-                onClick={toggleScreenAudio}
-                className={`px-2.5 py-1.5 rounded-lg text-xs border transition flex items-center space-x-1.5 ${
-                  isScreenAudioMuted
-                    ? 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'
-                    : 'bg-zinc-800 text-zinc-200 border-zinc-700 hover:text-white'
-                }`}
-                title={isScreenAudioMuted ? 'Unmute Screen Audio' : 'Mute Screen Audio'}
-              >
-                {isScreenAudioMuted ? (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-[11px]">Desktop Audio Off</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-zinc-300" />
-                    <span className="text-[11px]">Desktop Audio On</span>
-                  </>
-                )}
-              </button>
+              {(screenStream?.getAudioTracks().length ?? 0) > 0 && (
+                <button
+                  onClick={toggleScreenAudio}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs border transition flex items-center space-x-1.5 ${
+                    isScreenAudioMuted
+                      ? 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'
+                      : 'bg-zinc-800 text-zinc-200 border-zinc-700 hover:text-white'
+                  }`}
+                  title={isScreenAudioMuted ? 'Unmute Screen Audio' : 'Mute Screen Audio'}
+                >
+                  {isScreenAudioMuted ? (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
+                      <span className="text-[11px]">Desktop Audio Off</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-zinc-300" />
+                      <span className="text-[11px]">Desktop Audio On</span>
+                    </>
+                  )}
+                </button>
+              )}
             </>
           )}
         </div>
