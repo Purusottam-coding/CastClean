@@ -125,6 +125,27 @@ export const ViewerView: React.FC<ViewerViewProps> = ({
     }
   };
 
+  // State 0: Connecting to Room
+  if (viewerState === 'connecting') {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 mb-3">
+          <Clock className="w-6 h-6 animate-spin text-zinc-400" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-1">Connecting to Room</h2>
+        <p className="text-xs text-zinc-400 mb-6">
+          Locating host for room <strong className="text-zinc-200 font-mono">{roomCode}</strong>. Please wait a moment...
+        </p>
+        <button
+          onClick={onExit}
+          className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg text-xs font-medium transition"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
   // State 1: Knocking in Waiting Lobby
   if (viewerState === 'knocking') {
     return (

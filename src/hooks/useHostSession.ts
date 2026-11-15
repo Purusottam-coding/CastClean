@@ -4,6 +4,7 @@ import type { ViewerParticipant, DataChannelMessage } from '../types';
 import { getHostPeerId } from '../utils/room';
 import { PrivacyCurtainStream } from '../utils/curtainCanvas';
 import { HostAudioMixer } from '../utils/audioMixer';
+import { DEFAULT_ICE_SERVERS } from '../utils/webrtcConfig';
 
 interface UseHostSessionOptions {
   roomCode: string;
@@ -429,10 +430,7 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
     try {
       peer = new Peer(hostPeerId, {
         config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' },
-          ],
+          iceServers: DEFAULT_ICE_SERVERS,
         },
       });
     } catch (err) {

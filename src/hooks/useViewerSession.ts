@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs';
 import type { DataChannelMessage, WebRTCStats } from '../types';
 import { getHostPeerId, generateViewerPeerId } from '../utils/room';
+import { DEFAULT_ICE_SERVERS } from '../utils/webrtcConfig';
 
 export type ViewerState =
   | 'connecting'
@@ -133,10 +134,7 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
     try {
       peer = new Peer(myPeerId, {
         config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' },
-          ],
+          iceServers: DEFAULT_ICE_SERVERS,
         },
       });
     } catch (err) {
@@ -148,11 +146,26 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
 
     peerRef.current = peer;
 
+    let hasConnected = false;
+    let connectionTimeout: number | undefined;
+
     peer.on('open', () => {
+      // 30-second fallback timeout once connected to signaling broker and dialing host
+      connectionTimeout = window.setTimeout(() => {
+        if (!hasConnected) {
+          setViewerState('error');
+          setErrorMessage(
+            `Could not connect to room "${roomCode}". Please make sure the host has started the session and is online.`
+          );
+        }
+      }, 30000);
+
       const conn = peer.connect(hostPeerId, { reliable: true });
       dataConnRef.current = conn;
 
       conn.on('open', () => {
+        hasConnected = true;
+        if (connectionTimeout) window.clearTimeout(connectionTimeout);
         setViewerState('knocking');
         conn.send({
           type: 'REQUEST_ACCESS',
@@ -206,16 +219,25 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
       });
 
       conn.on('close', () => {
+        if (!hasConnected) {
+          setViewerState('error');
+          setErrorMessage(`Host room "${roomCode}" was not found or is currently offline.`);
+          return;
+        }
         setViewerState((curr) => {
           if (curr === 'kicked' || curr === 'access_denied') return curr;
           return 'stream_ended';
         });
       });
 
-      conn.on('error', (err) => {
+      conn.on('error', (err: any) => {
         console.error('Connection error:', err);
         setViewerState('error');
-        setErrorMessage('Lost connection to host.');
+        if (!hasConnected) {
+          setErrorMessage(`Host room "${roomCode}" was not found or is currently offline.`);
+        } else {
+          setErrorMessage(err?.message || 'Lost connection to host.');
+        }
       });
     });
 
@@ -302,6 +324,9 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
     }, 1500);
 
     return () => {
+      if (connectionTimeout) {
+        window.clearTimeout(connectionTimeout);
+      }
       clearInterval(statsInterval);
       if (dataConnRef.current && dataConnRef.current.open) {
         try {
