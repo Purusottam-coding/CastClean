@@ -39,6 +39,8 @@ export const HostView: React.FC<HostViewProps> = ({
   const {
     peerReady,
     peerError,
+    shareError,
+    clearShareError,
     isSharing,
     isCurtainActive,
     isScreenAudioMuted,
@@ -62,7 +64,20 @@ export const HostView: React.FC<HostViewProps> = ({
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [brokerNotice, setBrokerNotice] = useState<string | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+
+  const handleShareClick = () => {
+    if (!peerReady) {
+      if (peerError) {
+        setBrokerNotice(peerError);
+      } else {
+        setBrokerNotice('Connecting to WebRTC network broker... Please wait a few seconds and try again.');
+      }
+      return;
+    }
+    startSharing();
+  };
 
   useEffect(() => {
     if (videoPreviewRef.current) {
@@ -122,12 +137,27 @@ export const HostView: React.FC<HostViewProps> = ({
         </div>
       )}
 
+      {shareError && (
+        <div className="p-3 bg-amber-950/80 border border-amber-800/80 rounded-lg flex items-center justify-between text-xs text-amber-200">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{shareError}</span>
+          </div>
+          <button
+            onClick={clearShareError}
+            className="text-zinc-400 hover:text-white px-2 py-0.5 text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Main Grid: Left = Compact Preview & Controls, Right = Waiting & Active Viewers */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Column: Compact Screen Preview + Control Console */}
         <div className="lg:col-span-8 flex flex-col space-y-3">
           {/* Compact Live Preview Container */}
-          <div className="relative w-full aspect-video max-h-[460px] bg-zinc-950 rounded-xl border border-zinc-800 overflow-hidden flex items-center justify-center shadow-lg">
+          <div className="relative w-full aspect-video min-h-[220px] max-h-[460px] bg-zinc-950 rounded-xl border border-zinc-800 overflow-hidden flex items-center justify-center shadow-lg">
             {isSharing ? (
               <>
                 <video
@@ -169,18 +199,18 @@ export const HostView: React.FC<HostViewProps> = ({
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center text-center p-6">
+              <div className="flex flex-col items-center justify-center text-center p-4 sm:p-6">
                 <Cast className="w-10 h-10 text-zinc-600 mb-2" />
                 <h3 className="text-sm font-semibold text-zinc-200">No Screen Active</h3>
-                <p className="text-xs text-zinc-500 mt-1 mb-4">
+                <p className="text-xs text-zinc-500 mt-1 mb-4 max-w-xs">
                   Select an application window, screen, or browser tab to start streaming.
                 </p>
                 <button
-                  onClick={startSharing}
-                  disabled={!peerReady}
-                  className="px-4 py-2 bg-zinc-100 hover:bg-white disabled:opacity-40 text-zinc-950 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
+                  type="button"
+                  onClick={handleShareClick}
+                  className="px-4 py-2.5 bg-zinc-100 hover:bg-white active:scale-95 text-zinc-950 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm cursor-pointer select-none"
                 >
-                  <Cast className="w-3.5 h-3.5" />
+                  <Cast className="w-4 h-4" />
                   <span>{peerReady ? 'Share Screen' : 'Connecting Broker...'}</span>
                 </button>
               </div>
@@ -474,6 +504,56 @@ export const HostView: React.FC<HostViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Mobile / Screen Share Notice Modal */}
+      {shareError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-xl p-5 shadow-2xl text-center space-y-3.5">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="font-semibold text-sm text-white">Screen Sharing Notice</h3>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              {shareError}
+            </p>
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={onExit}
+                className="flex-1 py-2 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold rounded-lg transition"
+              >
+                Join as Viewer
+              </button>
+              <button
+                onClick={clearShareError}
+                className="py-2 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg transition"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broker Connecting Notice Modal */}
+      {brokerNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-xl p-5 shadow-2xl text-center space-y-3.5">
+            <div className="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 mx-auto">
+              <Clock className="w-6 h-6 animate-spin text-zinc-400" />
+            </div>
+            <h3 className="font-semibold text-sm text-white">Connecting to Network</h3>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              {brokerNotice}
+            </p>
+            <button
+              onClick={() => setBrokerNotice(null)}
+              className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg transition"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
 
       <ShareModal
         roomCode={roomCode}

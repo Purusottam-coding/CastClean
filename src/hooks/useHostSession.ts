@@ -15,6 +15,7 @@ interface UseHostSessionOptions {
 export function useHostSession({ roomCode, hostName, requireApproval }: UseHostSessionOptions) {
   const [peerReady, setPeerReady] = useState(false);
   const [peerError, setPeerError] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isCurtainActive, setIsCurtainActive] = useState(false);
   const [isScreenAudioMuted, setIsScreenAudioMuted] = useState(false);
@@ -340,16 +341,61 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
 
   // Start screen sharing
   const startSharing = useCallback(async () => {
+    setShareError(null);
+
+    // 1. Check if mediaDevices API is available in this browser context
+    if (!navigator.mediaDevices) {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        setShareError(
+          'Screen sharing requires a secure HTTPS connection. Mobile browsers strictly disable screen sharing on insecure HTTP (http://192.168.x.x).'
+        );
+      } else {
+        setShareError('Your browser does not support WebRTC screen capture.');
+      }
+      return false;
+    }
+
+    // 2. Check if getDisplayMedia is supported on this platform
+    if (!navigator.mediaDevices.getDisplayMedia) {
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (isIOS) {
+        setShareError(
+          'Apple iOS does not allow screen sharing from web browsers. iPhones can join as Viewers to watch other screens.'
+        );
+      } else {
+        setShareError(
+          'This mobile browser does not support screen sharing. For hosting, please use Chrome on a desktop or an Android device supporting screen capture.'
+        );
+      }
+      return false;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          displaySurface: 'monitor',
-          frameRate: { ideal: 60, max: 60 },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: true,
-      });
+      let stream: MediaStream;
+
+      try {
+        // Attempt desktop constraints first (with system audio if supported)
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: { ideal: 30, max: 60 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: true,
+        });
+      } catch (firstErr: any) {
+        if (firstErr?.name === 'NotAllowedError') {
+          return false;
+        }
+        // Fallback for mobile Android (which disallows audio: true or complex video constraints)
+        console.warn('Primary screen capture failed, retrying with mobile-compatible video constraints:', firstErr);
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
+      }
 
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
@@ -387,8 +433,13 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       });
 
       return true;
-    } catch (err) {
-      console.warn('Screen share request cancelled or failed:', err);
+    } catch (err: any) {
+      if (err?.name === 'NotAllowedError') {
+        // User cancelled the prompt
+        return false;
+      }
+      console.warn('Screen share request failed:', err);
+      setShareError(err?.message || 'Could not start screen sharing on this device.');
       return false;
     }
   }, [participants, callViewer, stopSharing, broadcast, updateAudioTrackOnAllCalls]);
@@ -584,6 +635,8 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
   return {
     peerReady,
     peerError,
+    shareError,
+    clearShareError: () => setShareError(null),
     isSharing,
     isCurtainActive,
     isScreenAudioMuted,

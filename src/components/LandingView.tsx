@@ -13,8 +13,13 @@ export const LandingView: React.FC<LandingViewProps> = ({
   onStartHost,
   onJoinViewer,
 }) => {
+  const isMobile =
+    typeof navigator !== 'undefined' &&
+    (/Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
   const [activeTab, setActiveTab] = useState<'host' | 'join'>(
-    initialRoomCode ? 'join' : 'host'
+    initialRoomCode || isMobile ? 'join' : 'host'
   );
 
   const [hostRoomCode, setHostRoomCode] = useState(generateRoomCode());
@@ -106,6 +111,14 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
         {activeTab === 'host' ? (
           <form onSubmit={handleHostSubmit} className="space-y-4">
+            {isMobile && (
+              <div className="p-3 bg-zinc-950/90 border border-zinc-800 rounded-lg text-[11px] text-zinc-300 flex items-start space-x-2">
+                <Tv className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-zinc-100">Mobile Notice:</strong> Screen broadcasting requires a desktop computer (PC/Mac). Mobile phones are designed to <strong>Join as Viewer</strong>.
+                </span>
+              </div>
+            )}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-medium text-zinc-300">Room Code</label>
