@@ -14,7 +14,7 @@ export class HostAudioMixer {
   constructor() {
     try {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.ctx = new AudioCtx();
+      this.ctx = new AudioCtx({ latencyHint: 'interactive' });
       this.destination = this.ctx.createMediaStreamDestination();
     } catch (err) {
       console.warn('AudioContext not supported:', err);

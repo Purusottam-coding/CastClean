@@ -248,10 +248,37 @@ export function useViewerSession({ roomCode, displayName }: UseViewerSessionOpti
       const emptyStream = new MediaStream();
       call.answer(emptyStream);
 
+      // Tune receiver for zero-latency / minimal jitter buffer delay
+      const applyReceiverTuning = () => {
+        const pc = call.peerConnection;
+        if (!pc) return;
+        try {
+          pc.getReceivers().forEach((receiver: any) => {
+            if (receiver.track && receiver.track.kind === 'video') {
+              if ('playoutDelayHint' in receiver) {
+                receiver.playoutDelayHint = 0; // 0s artificial playout delay
+              }
+              if ('jitterBufferTarget' in receiver) {
+                receiver.jitterBufferTarget = 0; // Real-time frame rendering
+              }
+            }
+          });
+        } catch {
+          // Ignore
+        }
+      };
+
+      applyReceiverTuning();
+      if (call.peerConnection) {
+        call.peerConnection.addEventListener('track', applyReceiverTuning);
+        call.peerConnection.addEventListener('connectionstatechange', applyReceiverTuning);
+      }
+
       call.on('stream', (stream) => {
         setRemoteStream(stream);
         setIsHostSharing(true);
         setViewerState('connected');
+        applyReceiverTuning();
       });
 
       call.on('close', () => {

@@ -127,6 +127,33 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       const call = peer.call(viewerId, stream);
       mediaCallsRef.current.set(viewerId, call);
 
+      // Tune WebRTC video sender for zero-latency / minimal bufferbloat
+      const applyLowLatency = () => {
+        const pc = call.peerConnection;
+        if (!pc) return;
+        try {
+          pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === 'video') {
+              const params = sender.getParameters();
+              if (!params.encodings || params.encodings.length === 0) {
+                params.encodings = [{}];
+              }
+              params.encodings[0].maxBitrate = 3500000; // 3.5 Mbps clean 1080p without buffer queueing
+              params.encodings[0].maxFramerate = 30; // 30 FPS stable
+              params.degradationPreference = 'maintain-framerate'; // Prioritize realtime frame delivery over resolution
+              sender.setParameters(params).catch(() => {});
+            }
+          });
+        } catch (e) {
+          console.debug('Failed to set sender parameters:', e);
+        }
+      };
+
+      applyLowLatency();
+      if (call.peerConnection) {
+        call.peerConnection.addEventListener('connectionstatechange', applyLowLatency);
+      }
+
       call.on('close', () => {
         mediaCallsRef.current.delete(viewerId);
       });
@@ -377,12 +404,12 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
       let stream: MediaStream;
 
       try {
-        // Attempt desktop constraints first (with system audio if supported)
+        // Attempt desktop constraints (30 FPS for minimal encoding latency and zero buffer backlog)
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: {
-            frameRate: { ideal: 30, max: 60 },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            frameRate: { ideal: 30, max: 30 },
+            width: { ideal: 1920, max: 1920 },
+            height: { ideal: 1080, max: 1080 },
           },
           audio: true,
         });
@@ -399,7 +426,8 @@ export function useHostSession({ roomCode, hostName, requireApproval }: UseHostS
 
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.contentHint = 'detail';
+        // 'motion' tells WebRTC to prioritize real-time low-latency transmission over static high-res buffering
+        videoTrack.contentHint = 'motion';
         videoTrack.onended = () => {
           stopSharing();
         };
